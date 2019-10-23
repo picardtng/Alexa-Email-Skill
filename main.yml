@@ -1,0 +1,258 @@
+---
+include:
+  - intents.yml
+  - slots.yml
+  - tests.yml
+scenario:
+  name: 'mail'
+  locale: 'it-IT'
+  category: EDUCATION_AND_REFERENCE
+  invocation: 'posta mail'
+  examplePhrases:
+    - 'Alexa, posta mail'
+  steps:
+  
+  
+    - name: Initial step       
+      when: 'bottalk_input.context.System.device.supportedInterfaces.Display is defined'
+      actions:
+        - getUrl:
+              url: 'https://xxxxxxxxxx.com/delmail.php'
+        - apl.show:
+            url: https://xxxxxxxxxx.com/apl_template.json
+            params: 
+              payload.bodyTemplate1Data.textContent.primaryText.text: 'Posta'             
+              
+        - sendRandomText:
+          - "A quale indirizzo vuoi spedire la tua mail?"
+          - >
+            Questa è posta mail!             
+            {{ random(["A quale indirizzo vuoi spedire una mail?", 
+            "A chi vuoi spedire una mail?", 
+            "Mi puoi dare l'indirizzo mail del destinatario?"]) }}
+          - >
+            {{ n_uno }}, sei su posta mail. 
+            Per continuare, {{ random(["dimmi la mail a cui vuoi mandare un messagio", 
+            "dimmi quale indirizzo vuoi spedire una mail?", 
+            "dettami la mail destinatario."]) }}
+        
+        - getInput:
+         
+      next:
+        yam: sesto
+        AMAZON.NavigateHomeIntent: Initial step
+        AMAZON.CancelIntent: Exit
+        AMAZON.StopIntent: Exit
+        AMAZON.HelpIntent: Help
+        else: set a
+        '*': Initial step
+        
+    - name: set a     
+      actions:  
+        - getUrl:
+              url: 'https://xxxxxxxxxx.com/delmail.php'
+        - sendText: 'A quale indirizzo vuoi spedire la tua mail?'
+        - reprompt: >
+            Non ho capito. A quale indirizzo vuoi spedire la tua mail?'
+        - getInput:
+         
+      next:
+        yam: sesto
+        AMAZON.NavigateHomeIntent: Initial step
+        AMAZON.CancelIntent: Exit
+        AMAZON.StopIntent: Exit
+        AMAZON.HelpIntent: Help
+        '*': set a
+        
+    - name: sesto
+      actions:
+        - getUrl:
+              url: 'https://xxxxxxxxxx.com/chiocciola.php?nome={{ mail }}'
+        - set: 'email_uno = urlResponse.n'
+        
+      next: settimo       
+    
+        
+    - name: settimo
+      actions:
+        - getUrl:
+              url: 'https://xxxxxxxxxx.com/updatemail.php?id={{ user_identifier }}&maile={{ email_uno }}'
+        
+        
+      next: com
+      
+    - name: com    
+      actions:
+        - getUrl:
+              url: 'https://xxxxxxxxxx.com/mailto.php?id={{ user_identifier }}'
+        - set: 'ot = urlResponse[0]["mail"]'
+        - getUrl:
+              url: 'https://xxxxxxxxxx.com/verificamail.php?nome={{ ot }}'
+        - set: 'liam = urlResponse.n'      
+        - compareContext:
+            var: '{{ liam }}'
+            is_equal: 'sex'        
+      next:   
+        'true': falsh       
+        'false': messaggio
+        
+    - name: falsh
+      actions:
+        - getUrl:
+              url: 'https://xxxxxxxxxx.com/delmail.php'
+        - sendText: 'Attenzione! Lindirizzo di posta elettronica che mi hai indicato non va bene.'
+        
+      next: Initial step       
+         
+    - name: messaggio
+      actions:
+        - sendText: 'Cosa vuoi scrivere nella mail?'
+        - reprompt: >
+            Non ho capito. Cosa vuoi scrivere nella mail?
+        - getInput:
+        
+      next:
+        yam: uno 
+        torna: Initial step
+        AMAZON.CancelIntent: Exit
+        AMAZON.StopIntent: Exit
+        AMAZON.HelpIntent: Help
+        '*': messaggio    
+      
+      
+    - name: uno
+      actions:     
+        - getUrl:
+              url: 'https://xxxxxxxxxx.com/updatemessaggio.php?id={{ user_identifier }}&mess={{ mail | url_encode }}'              
+        - sendText: 'Vuoi aggiungere altro?'
+        - reprompt: >
+            Non ho capito. Vuoi aggiungere altro?'
+        - getInput:
+        
+      next: 
+        si: due
+        AMAZON.CancelIntent: Exit
+        AMAZON.StopIntent: Exit
+        AMAZON.HelpIntent: Help
+        no: invio mail tre 
+        '*': uno
+        
+    - name: due
+      actions:
+        - sendText: 'Dimmi pure'
+        - reprompt: >
+            Non ho capito. Dimmi pure'
+        - getInput:
+        
+      next:
+        yam: tre 
+        torna: Initial step
+        '*': due
+        
+    - name: tre
+      actions:
+        - getUrl:
+              url: 'https://xxxxxxxxxx.com/updatemessaggio2.php?id={{ user_identifier }}&mess={{ mail | url_encode}}'         
+        - sendText: 'Ancora?'
+        - getInput:
+        
+      next:        
+        si: quattro
+        no: invio mail tre 
+        torna: Initial step
+        AMAZON.CancelIntent: Exit
+        AMAZON.StopIntent: Exit
+        AMAZON.HelpIntent: Help
+        '*': tre
+        
+    - name: quattro
+      actions:
+        - sendText: 'Dettami pure.'
+        - reprompt: >
+            Non ho capito. Dettami pure'
+        - getInput:
+        
+      next:
+        yam: cinque
+        torna: Initial step
+        '*': quattro
+        
+    - name: cinque
+      actions:
+        - getUrl:
+              url: 'https://xxxxxxxxxx.com/updatemessaggio3.php?id={{ user_identifier }}&mess={{ mail | url_encode }}'         
+      
+      next: invio mail tre
+        
+    - name: invio mail tre
+      actions:         
+        - getUrl:
+              url: 'https://xxxxxxxxxx.com/mailto.php?id={{ user_identifier }}'
+        - set: 'to = urlResponse[0]["mail"]'
+        - set: 'prima = urlResponse[0]["prima"]'
+        - set: 'seconda = urlResponse[0]["seconda"]'
+        - set: 'terza = urlResponse[0]["terza"]'        
+        
+      next: messaggio uno x
+      
+    - name: messaggio uno x
+      actions:
+        - getUrl:
+            url: 'https://xxxxxxxxxx.com/punteggio.php?nome={{ prima | url_encode }}%20{{ seconda | url_encode }}%20{{ terza | url_encode }} '
+        - set: 'punct = urlResponse.n'    
+      next: messaggio uno
+      
+    - name: messaggio uno
+      when: 'bottalk_input.context.System.device.supportedInterfaces.Display is defined'
+      actions: 
+      
+        - getUrl:
+              url: 'https://xxxxxxxxxx.com/mail2.php?email={{ to }}&sender=Skill%20Posta%20Mail&messaggio={{ punct | url_encode | raw }}'
+        - sendText: 'Il tuo messaggio: {{ punct }}, è stato spedito a {{ to }}. Vuoi spedire unaltra mail?'      
+        - apl.show:
+            url: https://xxxxxxxxxx.com/apl_template.json
+            params: 
+              payload.bodyTemplate1Data.textContent.primaryText.text: 'A: {{ to }}: {{ punct }}'          
+        
+        - getInput:
+        
+      next: 
+        si: Initial step
+        no: Exit 
+        torna: Initial step
+        else: messaggio uno a
+      
+    - name: messaggio uno a
+      actions:        
+       - getUrl:
+              url: 'https://xxxxxxxxxx.com/mail2.php?email={{ to }}&sender=Skill%20Posta%20Mail&messaggio={{ punct | url_encode | raw }}'
+            
+      next: final             
+              
+    
+    - name: final
+      actions:         
+        - sendText: 'Il tuo messaggio: {{ punct }}, è stato spedito a {{ to }}. Vuoi spedire unaltra mail?'     
+        
+        - getInput:
+      
+      next: 
+        si: Initial step 
+        no: Exit   
+        torna: Initial step
+   
+    - name: Exit
+      entrypoint: true
+      actions:
+        - getUrl:
+              url: 'https://xxxxxxxxxx.com/delmail.php'
+        - sendText: 'Torna quando vuoi. Basta dire: "Alexa, apri posta mail" per aprire di nuovo la skill.' 
+        
+    - name: Help
+      entrypoint: true
+      actions:
+        - sendText: 'Con questa skill puoi spedire una mail semplicemente dettandomi indirizzo e messaggio. Verrà spedita ogni volta anche una copia della mail che avete inviato, con lindirizzo che avete indicato, anche alla vostra casella di posta personale. Vuoi iniziare lesperienza?'
+        - getInput: 
+      next: 
+        si: Initial step 
+        no: Exit
